@@ -19,9 +19,9 @@ hour<-rep(1:24,365)
 julianday<-rep(seq(1:365),each=24)
 julianhour<-seq(1:8760)
 ## Solar field specifications
-## reflectividad
+## reflectivity
 LS3reflec<-0.94
-## transmisividad
+## transmisivity
 LS3trans<-0.955
 ## interceptation factor
 LS3intf<-0.997
@@ -50,25 +50,22 @@ GTrTaRHP<-function(Ta,RH,P,Pb){
   ef}
 ## Supposing cummulative efficiency curves: STrTaRHP (power)
 STrTaRHP<-function(Ta){
-  #efTa<-(-0.053185*Ta+100.79)/100 ## Shi.Agnew.ea2010
-  efTa<-(6e-4*Ta^2-0.1579*Ta+102.24)/100 ## Excel Javier
-  #efRH<-(-8E-06*RH^2 + 0.0125*RH + 99.251)/100 
-  #efP<-((27/25)*((P/Pb)*100-100)+100)/100 
-  ef<-efTa#*efRH*efP
+  efTa<-(6e-4*Ta^2-0.1579*Ta+102.24)/100 
+  ef<-efTa
   ef}
 ## partial load of steam turbine
 STrLoad<-function(ratio){
   efratio<--3.3784*(ratio^2)+3.9324*ratio-0.1716
   efratio
 }
-## gas turbine related to air temperature ef=-0.002*x^2-0.1237*x+102.28 (R2=0.99949)
+## gas turbine related to air temperature 
 eGTrTa<-function(x){ef<-(-0.002*x^2-0.1237*x+102.28)}
 
 ## definition of stations
 ocgt<-as.data.frame(read.csv2('CCGTv1.csv',sep=';',dec=',',header=TRUE),sep=';',header=TRUE,colClasses='numeric',dec='.')
 est<-as.character(ocgt$Name[which(ocgt$Land==1)])
 ###
-## definition of lapply function to be applied along est
+## definition of lapply function to be applied along 'est'
 
 estocgt<-est[which(ocgt$Cycle=='OCGT')]
 
@@ -95,7 +92,7 @@ Lon<-as.numeric(as.character(ocgt$Longitude))[which(ocgt$Land==1)][which(est==x)
 sol<-calcSol(Lat,local2Solar(iTs,Lon),sample='hour',EoT=TRUE,method='michalsky')
 incang<-r2d(acos(as.numeric(fTheta(sol,modeTrk='horiz')$cosTheta)[25:8784]))
 incang[which(is.na(incang))]<-0
-## Definition of modificator of incidence angle as per Gonz?lez.Zarza.ea2001
+## Definition of modificator of incidence angle
 which(incang>80)
 ## No angle higher than 80?, which would mean modincang<-0
 modincang<-1-2.23073e-4*(incang)-1.1e-4*(incang^2)+3.18596e-6*(incang^3)-4.85509e-8*(incang^4)
@@ -104,8 +101,6 @@ modincang[which(incang>80)]<-0
 optef<-modincang*nopico
 ## Loss area per collector
 Lossarea<-LS3width*(LS3focdis+((LS3focdis*(LS3width^2))/(48*(LS3focdis^2))))*tan(d2r(incang))
-## Specific heat inpu8t to absorber (kWth/m2)
-#spheatin<-meteo$dni*optef*mirrorclean/1000
 ## Heat loss from collector to environment (kWth per collector)
 Pcolenv<-(0.00154*(HTFm-meteo$TempMed)^2+0.2021*(HTFm-meteo$TempMed)-24.899+
             ((0.00036*(HTFm-meteo$TempMed)^2+0.2029*(HTFm-meteo$TempMed)+24.899)*(meteo$dni/900)*
@@ -122,7 +117,7 @@ PerLoopTotal<-lapply(ratio_stgt_tot,function(ratio_stgt){
 PerLoop<-lapply(n_loops_max,function(n_loops){
   
 Psolar_th<-n_loops*4*Pcolfluid ## 4 Solar Collection Assemblies per loop
-## we consider a 34.25% steam turbine efficiency from exergy graph book
+## we consider a 34.25% steam turbine efficiency 
 ST<-ratio_stgt*as.numeric(as.character(ocgt$TG[which(ocgt$Name==x)]))
 ef_st<-0.3425
 ef_hrsg<-0.95
@@ -140,11 +135,8 @@ P<-meteo$P
 DNI<-meteo$dni
 ## base pressure
 Pb<-((-27/2400)*ocgt$Elevation[which(ocgt$Name==x)]+100)/100*1013
-## Natural gas consumption rate: NECESITAMOS ENCONTRARLO!!!!!!
-#NG_cons_rate<-(16.85/266)*ocgt$TG[which(ocgt$Name==x)]#kg/s (266 MW GT (Palos de la Frontera book ocgt))
 NG_cons_rate<-(20/260)*as.numeric(as.character(ocgt$TG[which(ocgt$Name==x)]))
 efGTrTa<-eGTrTa(Ta)
-
 
 potenciainicialst<-(ratio_stgt_tot[1]*as.numeric(as.character(ocgt$TG[which(ocgt$Name==x)])))
 diferencia<-ST-potenciainicialst
@@ -189,7 +181,7 @@ ef_sf<-0.52
 
 Rad<-600
 Pe_fixed<-n_loops*LS3oparea*4*Rad*ef_st*ef_sf/(Aux_con*1000) # in KW
-# precio conversion OCGT en CCGT
+# conversion price from OCGT to CCGT
 p_conv<-605.4 # USD/kWe
 pot<-(ST+as.numeric(as.character(ocgt$TG[which(ocgt$Name==x)])))
 Cost_fixed<-p_conv*pot*1000+15*pot+0.85*sum(Pccgt_sc1)
@@ -259,7 +251,7 @@ setwd(old)
 num<-which(ocgt$Cycle=='OCGT')
 setwd('/Users/usuario/Desktop/OCGT-ISCC')
 load('Todo4.RData')
-## Escenario de operación: horas centrales del día
+## Scenario of operation: central hours of the day
 
 horas_operacion<-seq(11,17,1)
 horas<-lapply(horas_operacion,function(x){
@@ -297,7 +289,7 @@ tt
 # each element of Annual is for a station, 7 steam turbine configurations and 61 different solar field configurations.
 save(Annual,file='Annual.RData')
 
-## Selecciono el número de lazos para el cual el dumping es mayor al solar integrable
+## Selection of the number of loops for which dumping is greater than solar integration
 K<-lapply(c(1:18),function(stat){
   x<-Annual[[stat]]
   M<-lapply(c(1:7),function(configu){
@@ -311,7 +303,7 @@ K<-lapply(c(1:18),function(stat){
   });M<-do.call(rbind,M)
   M
 })
-## Unidades
+## Units
 KK<-lapply(K,function(x){
   m<-data.frame(x[,c(1,4,5,6,2)]/1000,x[,c(7,8)]*100,x[,c(9,11)])
   names(m)<-c('Pocgt','Piscc','Psol','Dumping','Pst','sol_share','lcoe','irr','nloop')
