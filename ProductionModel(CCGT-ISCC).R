@@ -19,9 +19,9 @@ hour<-rep(1:24,365)
 julianday<-rep(seq(1:365),each=24)
 julianhour<-seq(1:8760)
 ## Solar field specifications
-## reflectividad
+## reflectivity
 LS3reflec<-0.94
-## transmisividad
+## transmisivity
 LS3trans<-0.955
 ## interceptation factor
 LS3intf<-0.997
@@ -58,7 +58,7 @@ STrTaRHP<-function(Ta){
 ccgt<-as.data.frame(read.csv2('CCGTv1.csv',sep=';',dec=',',header=TRUE),sep=';',header=TRUE,colClasses='numeric',dec='.')
 est<-as.character(ccgt$Name[which(ccgt$Land==1)])
 ###
-## definition of lapply function to be applied along est
+## definition of lapply function to be applied along 'est'
 
 estccgt<-est[which(ccgt$Cycle=='CCGT')]
 
@@ -97,7 +97,7 @@ Psuncol<-LS3oparea*meteo$dni*cos(d2r(incang))/1000
 Pcolfluid<-(LS3oparea-Lossarea)*meteo$dni*cos(d2r(incang))*optef*mirrorclean/1000-Pcolenv
 Pcolfluid[which(Pcolfluid<0)]<-0
 Psolar_th<-n_loops*4*Pcolfluid ## 4 Solar Collection Assemblies per loop
-## we consider a 34.25% steam turbine efficiency from exergy graph book
+## we consider a 34.25% steam turbine efficiency
 ef_st<-0.3425
 ef_hrsg<-0.95
 Psolar_el<-Psolar_th*ef_st*ef_hrsg/1000 ## in MW
@@ -113,7 +113,7 @@ P<-meteo$P
 DNI<-meteo$dni
 ## base pressure
 Pb<-((-27/2400)*ccgt$Elevation[which(ccgt$Name==x)]+100)/100*1013
-## gas turbine related to air temperature ef=-0.002*x^2-0.1237*x+102.28 (R2=0.99949)
+## gas turbine related to air temperature
 eGTrTa<-function(x){ef<-(-0.002*x^2-0.1237*x+102.28)}
 NG_cons_rate<-(20/260)*as.numeric(as.character(ccgt$TG[which(ccgt$Name==x)]))
 efGTrTa<-eGTrTa(Ta)
@@ -149,7 +149,7 @@ ef_sf<-0.52
 
 Rad<-600
 Pe_fixed<-n_loops*LS3oparea*4*Rad*ef_st*ef_sf/(Aux_con*1000) # in KW
-# precio conversion CCGT en ISCC
+# conversion price from CCGT to ISCC
 p_conv<-3392 # USD/kWe
 Cost_fixed<-p_conv*Pe_fixed # cost of hybridation in dollars 
 
