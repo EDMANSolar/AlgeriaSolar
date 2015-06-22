@@ -50,11 +50,8 @@ GTrTaRHP<-function(Ta,RH,P,Pb){
   ef}
 ## Supposing cummulative efficiency curves: STrTaRHP (power)
 STrTaRHP<-function(Ta){
-  #efTa<-(-0.053185*Ta+100.79)/100 ## Shi.Agnew.ea2010
-  efTa<-(6e-4*Ta^2-0.1579*Ta+102.24)/100 ## Excel Javier
-  #efRH<-(-8E-06*RH^2 + 0.0125*RH + 99.251)/100 
-  #efP<-((27/25)*((P/Pb)*100-100)+100)/100 
-  ef<-efTa#*efRH*efP
+  efTa<-(6e-4*Ta^2-0.1579*Ta+102.24)/100 
+  ef<-efTa
   ef}
 
 ## definition of stations
@@ -72,8 +69,7 @@ modProd<-lapply(estccgt,function(x){
 ###
 Lat<-as.numeric(as.character(ccgt$Latitude))[which(ccgt$Land==1)][which(est==x)]
 Lon<-as.numeric(as.character(ccgt$Longitude))[which(ccgt$Land==1)][which(est==x)]
-#Pot<-tapply(ccgt$Gross_Power[which(ccgt$Room==1)],ccgt$Same[which(ccgt$Room==1)],sum)
-#Pot<-Pot[!is.na(Pot)]
+
 ## introduction of meteo data
 setwd('/Users/usuario/Dropbox/Desertec/DocumentosActivos/meteo')
 meteo<-as.data.frame(read.csv2(paste0('est',which(est==x),'.csv'),sep=';',header=TRUE,colClasses='numeric',dec='.'))
@@ -82,7 +78,7 @@ names(meteo)<-c('y','m','d','h','ghi','TempMed','dni','HumMed','P')
 sol<-calcSol(Lat,local2Solar(iTs,Lon),sample='hour',EoT=TRUE,method='michalsky')
 incang<-r2d(acos(as.numeric(fTheta(sol,modeTrk='horiz')$cosTheta)[25:8784]))
 incang[which(is.na(incang))]<-0
-## Definition of modificator of incidence angle as per Gonz?lez.Zarza.ea2001
+## Definition of modificator of incidence angle as per Gonzalez.Zarza.ea2001
 which(incang>80)
 ## No angle higher than 80?, which would mean modincang<-0
 modincang<-1-2.23073e-4*(incang)-1.1e-4*(incang^2)+3.18596e-6*(incang^3)-4.85509e-8*(incang^4)
@@ -91,8 +87,6 @@ modincang[which(incang>80)]<-0
 optef<-modincang*nopico
 ## Loss area per collector
 Lossarea<-LS3width*(LS3focdis+((LS3focdis*(LS3width^2))/(48*(LS3focdis^2))))*tan(d2r(incang))
-## Specific heat inpu8t to absorber (kWth/m2)
-#spheatin<-meteo$dni*optef*mirrorclean/1000
 ## Heat loss from collector to environment (kWth per collector)
 Pcolenv<-(0.00154*(HTFm-meteo$TempMed)^2+0.2021*(HTFm-meteo$TempMed)-24.899+
   ((0.00036*(HTFm-meteo$TempMed)^2+0.2029*(HTFm-meteo$TempMed)+24.899)*(meteo$dni/900)*
@@ -121,8 +115,6 @@ DNI<-meteo$dni
 Pb<-((-27/2400)*ccgt$Elevation[which(ccgt$Name==x)]+100)/100*1013
 ## gas turbine related to air temperature ef=-0.002*x^2-0.1237*x+102.28 (R2=0.99949)
 eGTrTa<-function(x){ef<-(-0.002*x^2-0.1237*x+102.28)}
-## Natural gas consumption rate: NECESITAMOS ENCONTRARLO!!!!!!
-#NG_cons_rate<-(16.85/266)*ccgt$TG[which(ccgt$Name==x)]#kg/s (266 MW GT (Palos de la Frontera book CCGT))
 NG_cons_rate<-(20/260)*as.numeric(as.character(ccgt$TG[which(ccgt$Name==x)]))
 efGTrTa<-eGTrTa(Ta)
 
@@ -258,14 +250,14 @@ Annual<-lapply(c(1:50),function(x){
 })
 save(Annual,file='Annual.RData')
 
-## Selecciono el número de lazos para el cual el dumping es mayor al solar integrable
+## Selection of the number of loops for which dumping is greater than the solar integration
 K<-lapply(c(1:3),function(st_ccgt){
   m<-lapply(c(1:50),function(nloop){t<-Annual[[nloop]][st_ccgt,]$Dumping_sc1>Annual[[nloop]][st_ccgt,]$Psol_int_sc1;t})
   m<-do.call(c,m)
   m<-which(m==TRUE)[1]-1
   m<-data.frame(Annual[[m]][st_ccgt,],m)})
 
-## Unidades
+## Units
 KK<-lapply(K,function(x){
   m<-data.frame(x[,c(1,2,3,4,5,6)]/1000,x[,10],x[,12]*100,x[,11],x[,13])
   names(m)<-c('Pccgt','Pst','Pgt','Piscc','Psol','Dumping','sol_share','lcoe','irr','nloop')
@@ -288,49 +280,3 @@ trellis.device(pdf, file='LCOEccgt-iscc.pdf')
 xyplot(LCOE~Loop,groups=Station,data=LCOE,auto.key=list(space='right', points=TRUE, lines=FALSE))
 dev.off() 
 
-
-#############################################################################################################
-## Gráficos de resultados ###################################################################################
-#############################################################################################################
-
-## 
-setwd('/Users/usuario/Dropbox/Desertec/DocumentosActivos/Resultados/CCGT-ISCC')
-load('Todo10.RData')
-Lazo1<-modProd[[3]]
-
-Sys.setlocale("LC_TIME", 'C')
-P0<-Lazo1$Pccgt_sc0[25:48]
-P1<-Lazo1$Pccgt_sc1[25:48]
-#P2<-Lazo1$Pccgt_sc2[4273:4296]
-D1<-Lazo1$Dumping_sc1[25:48]
-Ta<-Lazo1$Ta[25:48]
-day<-seq(as.POSIXct('2005-01-02 00:00:00'),as.POSIXct('2005-01-02 23:00:00'),by='hour')
-
-obj1<-xyplot(P1~day,ylim=c(1180,1220),type='l',col='mediumblue',ylab='P (MW)',
-             auto.key=FALSE,panel=function(x, y, ...){
-               panel.xyplot(x, y, ...)
-               panel.abline(v=c(day[12],day[18]),col="black",alpha=0.5,lwd=1.2)})
-#obj2<-xyplot(P2~day,ylim=c(405,437),type='l',col='green',lwd=1.2)
-obj3<-xyplot(D1~day,type='l',ylim=c(0,20))
-obj4<-xyplot(Ta~day,type='l',ylim=c(0,20),col='indianred')
-obj5<-xyplot(P0~day,ylim=c(1180,1220),type='l',col='orange',lwd=1.2)
-trellis.device(pdf, file='diaconcreto.pdf')
-update(doubleYScale(obj1, obj3,text = c("Piscc_1",'Dumping','Ta','Piscc_0')),
-       par.settings = simpleTheme(col = c('mediumblue','black','indianred','orange'), lty = c(1,1,1,1)))+
-  update(doubleYScale(obj1, obj4,text = c("Piscc_1",'Ta')),
-         par.settings = simpleTheme(col = c('black','black','indianred','black'), lty = c(1,1,1,1)))+
-  obj5
-dev.off()
-
-
-M<-data.frame(do.call(rbind,Annual)[,c(5,6)],rep(c('St 1','St 2','St 3'),50),rep(c(1:50),each=3))
-names(M)<-c('Psol','Dumping','St','Loops')
-
-trellis.device(pdf, height=4, width=6,file='Dumping-SolarInt_CCGT.pdf')
-xyplot(Dumping~Loops,groups=St,superpose=T,
-       auto.key=list(c('a','b','c'),space='right', points=TRUE, lines=FALSE),
-       data=M,ylab='MWh',cex=0.4, type='p')+
-  xyplot(Psol~Loops,groups=St,superpose=T,
-         auto.key=list(space='right', points=TRUE, lines=FALSE),
-         data=M,ylab='MWh',cex=0.4, type='p')
-dev.off()
